@@ -8,7 +8,7 @@ import io
 st.set_page_config(page_title="Amazon Auto-Merch Studio", layout="wide")
 
 st.title("🏹 Amazon Merch On Demand Auto-Studio")
-st.write("Extracting Amazon trends and instantly rendering print-ready 4500x5400px transparent PNGs.")
+st.write("Extracting Amazon trends and instantly rendering custom vibe-matched 4500x5400px transparent PNGs.")
 
 if st.button("🔄 Clear Cache & Refresh Daily Trends"):
     st.cache_data.clear()
@@ -54,19 +54,26 @@ selected_slot = st.radio("Select a slot to generate a design instantly:", option
                          format_func=lambda x: f"Slot #{x}: {df_top_10.loc[x, 'Trend']} ({df_top_10.loc[x, 'Niche']})")
 
 chosen_trend = df_top_10.loc[selected_slot, "Trend"]
+chosen_niche = df_top_10.loc[selected_slot, "Niche"]
 
 st.markdown("---")
-st.subheader(f"🎨 Production Engine: Generating Artwork for '{chosen_trend}'")
+st.subheader(f"🎨 Production Engine: Generating Artwork for Slot #{selected_slot}")
 
-# Use unique key for color selection to reset state nicely
-color_theme = st.selectbox("Select Text Color Theme:", ["Cream / Vintage White", "Sunset Orange", "Electric Teal", "Minimalist Black"], key=f"color_{selected_slot}")
-text_color_map = {
-    "Cream / Vintage White": (255, 253, 208, 255),
-    "Sunset Orange": (255, 94, 54, 255),
-    "Electric Teal": (0, 200, 200, 255),
-    "Minimalist Black": (0, 0, 0, 255)
+# --- DYNAMIC VIBE ENGINE CONFIGURATOR ---
+# Automatically shifts font size, colors, and styling matching the specific target market
+vibe_settings = {
+    "COASTAL SUMMER": {"color": (0, 200, 200, 255), "size": 380, "spacing": 450, "desc": "🌴 Vibe: Coastal Summer (Electric Teal, Clean High-Impact Layout)"},
+    "RETRO VINTAGE": {"color": (255, 94, 54, 255), "size": 410, "spacing": 430, "desc": "✌️ Vibe: Retro 70s Vintage (Sunset Orange, Bold Stacked Layout)"},
+    "BOOK LOVERS": {"color": (255, 253, 208, 255), "size": 360, "spacing": 460, "desc": "📚 Vibe: Bookish Indie (Cream / Vintage White, Soft Literary Aesthetic)"},
+    "FUNNY DOG": {"color": (255, 253, 208, 255), "size": 430, "spacing": 480, "desc": "🐾 Vibe: Quirky Humor (Cream / Vintage White, Massive Max-Scale Typography)"},
+    "AESTHETIC GRAPHIC": {"color": (0, 200, 200, 255), "size": 370, "spacing": 440, "desc": "✨ Vibe: Minimal Streetwear (Electric Teal, Spaced Layout)"},
+    "CLUB SHIRT": {"color": (255, 94, 54, 255), "size": 390, "spacing": 450, "desc": "🏅 Vibe: Athletic Club (Sunset Orange, Structured Group Block Layout)"}
 }
-chosen_rgba = text_color_map[color_theme]
+
+# Safeguard check if a unique keyword falls outside parameters
+current_vibe = vibe_settings.get(chosen_niche, {"color": (255, 253, 208, 255), "size": 380, "spacing": 440, "desc": "Standard Typography Matrix"})
+
+st.caption(f"**Current Aesthetic Matrix applied:** {current_vibe['desc']}")
 
 # --- THE STABLE WEB-FONT FETCH LAYER ---
 @st.cache_data
@@ -77,7 +84,8 @@ def load_web_font():
 
 try:
     font_bytes = load_web_font()
-    font = ImageFont.truetype(io.BytesIO(font_bytes), 350)
+    # Pull dynamic scaled font size directly from vibe settings
+    font = ImageFont.truetype(io.BytesIO(font_bytes), current_vibe["size"])
 except Exception as e:
     font = ImageFont.load_default()
 
@@ -85,6 +93,7 @@ except Exception as e:
 img = Image.new("RGBA", (4500, 5400), (0, 0, 0, 0))
 draw = ImageDraw.Draw(img)
 
+# Dynamic line spacing and sentence structuring
 words = chosen_trend.split()
 lines = []
 if len(words) > 3:
@@ -93,16 +102,17 @@ if len(words) > 3:
 else:
     lines.append(chosen_trend)
 
+# Compute vertical coordinate offset balances based on row volume count
 y_offset = 2400 if len(lines) == 1 else 2100
 for line in lines:
-    draw.text((2250, y_offset), line, font=font, fill=chosen_rgba, anchor="mm")
-    y_offset += 420
+    draw.text((2250, y_offset), line, font=font, fill=current_vibe["color"], anchor="mm")
+    y_offset += current_vibe["spacing"]
 
 buf = io.BytesIO()
 img.save(buf, format="PNG")
 byte_im = buf.getvalue()
 
-st.success(f"✅ 4500 x 5400 px Transparent PNG Generated Successfully for Slot #{selected_slot}.")
+st.success(f"✅ 4500 x 5400 px Vibe-Matched Transparent PNG Compiled for Slot #{selected_slot}.")
 
 st.download_button(
     label=f"📥 Download Print-Ready PNG for '{chosen_trend}'",
@@ -110,7 +120,7 @@ st.download_button(
     file_name=f"{chosen_trend.lower().replace(' ', '_')}_amazon_design.png",
     mime="image/png",
     type="primary",
-    key=f"dl_{selected_slot}" # Dynamic key to prevent download caching bugs
+    key=f"dl_{selected_slot}"
 )
 
 st.markdown("---")
@@ -121,8 +131,6 @@ seo_brand = f"{chosen_trend} Apparel Collective"
 seo_b1 = f"Stand out with this unique premium-style {chosen_trend} t-shirt. Features a custom high-contrast graphic layout that fits perfectly into casual everyday outfits, streetwear looks, or active wear."
 seo_b2 = f"The ultimate graphic design selection for fans and apparel collectors. This vintage-inspired {chosen_trend} layout makes an incredible gift for birthdays, holidays, or special group events."
 
-# --- DYNAMIC KEY IMPLEMENTATION FIX ---
-# Appending the selected_slot variable guarantees the inputs reset cleanly per click
 col1, col2 = st.columns(2)
 with col1:
     st.text_input("📋 Product Title", value=seo_title[:60], key=f"title_{selected_slot}")
