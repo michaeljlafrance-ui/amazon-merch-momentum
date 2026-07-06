@@ -2,119 +2,128 @@ import streamlit as st
 import requests
 import json
 import pandas as pd
-import urllib.parse
+from PIL import Image, ImageDraw, ImageFont
+import io
 
-st.set_page_config(page_title="Amazon Daily Top 10 Merch Matrix", layout="wide")
+st.set_page_config(page_title="Amazon Auto-Merch Studio", layout="wide")
 
-st.title("🏹 Amazon Daily Top 10 Merch Matrix")
-st.write("Your fresh, daily blueprint for high-volume Amazon buyer search trends with direct-launch Canva integration.")
+st.title("🏹 Amazon Merch On Demand Auto-Studio")
+st.write("Extracting Amazon trends and instantly rendering print-ready 4500x5400px transparent PNGs.")
 
 if st.button("🔄 Clear Cache & Refresh Daily Trends"):
     st.cache_data.clear()
     st.rerun()
 
-SEED_ROOTS = [
-    "retro vintage", 
-    "coastal summer", 
-    "funny dog", 
-    "aesthetic graphic", 
-    "club shirt", 
-    "book lovers",
-    "funny graphic"
-]
+SEED_ROOTS = ["retro vintage", "coastal summer", "funny dog", "aesthetic graphic", "club shirt", "book lovers"]
 
 amazon_trends = []
-
 for root in SEED_ROOTS:
     try:
         url = f"https://completion.amazon.com/api/2017/suggestions?session-id=123-4567890-1234567&customer-id=A1234567890&request-id=1234567890&page-type=Gateway&alias=aps&site-variant=desktop&version=1&mid=ATVPDKIKX0DER&lz=1&keyword={root}%20shirt"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers)
-        
         if response.status_code == 200:
-            data = response.json()
-            suggestions = data.get("suggestions", [])
-            for s in suggestions:
+            for s in response.json().get("suggestions", []):
                 phrase = s.get("value", "")
-                if len(phrase) > len(root) + 6 and "shirt" in phrase:
+                if "shirt" in phrase:
                     clean_phrase = phrase.replace("t-shirt", "").replace("tshirt", "").replace("shirt", "").strip().title()
-                    if clean_phrase and len(clean_phrase) < 45:
-                        amazon_trends.append({
-                            "Niche Class": root.upper(),
-                            "Active Amazon Buyer Trend": clean_phrase
-                        })
+                    if clean_phrase and len(clean_phrase) < 40:
+                        amazon_trends.append({"Niche": root.upper(), "Trend": clean_phrase})
     except:
         pass
 
-df_raw = pd.DataFrame(amazon_trends).drop_duplicates(subset=["Active Amazon Buyer Trend"])
-
-if len(df_raw) < 10:
-    fallback_data = [
-        {"Niche Class": "COASTAL SUMMER", "Active Amazon Buyer Trend": "Gulf Of Mexico Beach Club Vintage"},
-        {"Niche Class": "RETRO VINTAGE", "Active Amazon Buyer Trend": "Mama Mini Groovy 70s Match"},
-        {"Niche Class": "BOOK LOVERS", "Active Amazon Buyer Trend": "Just A Girl Who Loves Romance Books & Coffee"},
-        {"Niche Class": "FUNNY DOG", "Active Amazon Buyer Trend": "Official Couch Potato Security Crew"},
-        {"Niche Class": "CLUB SHIRT", "Active Amazon Buyer Trend": "Vintage Hiking Club Aesthetic"},
-        {"Niche Class": "AESTHETIC GRAPHIC", "Active Amazon Buyer Trend": "Cottagecore Wildflower Botanical"},
-        {"Niche Class": "RETRO VINTAGE", "Active Amazon Buyer Trend": "Pickleball Social Club Local"},
-        {"Niche Class": "FUNNY GRAPHIC", "Active Amazon Buyer Trend": "Introverted But Great At Data Math"},
-        {"Niche Class": "COASTAL SUMMER", "Active Amazon Buyer Trend": "Amalfi Coast Sailing Club Vintage"},
-        {"Niche Class": "BOOK LOVERS", "Active Amazon Buyer Trend": "Read More Books Emotional Rescue"}
+if len(amazon_trends) < 10:
+    amazon_trends = [
+        {"Niche": "COASTAL SUMMER", "Trend": "Gulf Of Mexico Beach Club"},
+        {"Niche": "RETRO VINTAGE", "Trend": "Mama Mini Groovy Crew"},
+        {"Niche": "BOOK LOVERS", "Trend": "Read Romance Books Drink Coffee"},
+        {"Niche": "FUNNY DOG", "Trend": "Official Couch Potato Security"},
+        {"Niche": "CLUB SHIRT", "Trend": "Vintage Hiking Club Aesthetic"},
+        {"Niche": "AESTHETIC GRAPHIC", "Trend": "Cottagecore Wildflower Botanical"},
+        {"Niche": "RETRO VINTAGE", "Trend": "Pickleball Social Club Local"},
+        {"Niche": "FUNNY GRAPHIC", "Trend": "Introverted But Great At Math"},
+        {"Niche": "COASTAL SUMMER", "Trend": "Amalfi Coast Sailing Club"},
+        {"Niche": "BOOK LOVERS", "Trend": "Read More Books Rescue"}
     ]
-    df_raw = pd.DataFrame(fallback_data)
 
-df_top_10 = df_raw.head(10).reset_index(drop=True)
+df_top_10 = pd.DataFrame(amazon_trends).drop_duplicates(subset=["Trend"]).head(10).reset_index(drop=True)
 df_top_10.index += 1
 
-st.subheader("📋 Top 10 Daily Trending Products Checklist")
-st.write("Click on any product slot below to open its custom workspace assets:")
+st.subheader("📋 Top 10 Live Trends Execution Panel")
+selected_slot = st.radio("Select a slot to generate a design instantly:", options=df_top_10.index,
+                         format_func=lambda x: f"Slot #{x}: {df_top_10.loc[x, 'Trend']} ({df_top_10.loc[x, 'Niche']})")
 
-selected_slot = st.radio(
-    "Choose a product position to execute right now:",
-    options=df_top_10.index,
-    format_func=lambda x: f"Slot #{x}: {df_top_10.loc[x, 'Active Amazon Buyer Trend']} ({df_top_10.loc[x, 'Niche Class']})"
-)
-
-chosen_trend = df_top_10.loc[selected_slot, "Active Amazon Buyer Trend"]
+chosen_trend = df_top_10.loc[selected_slot, "Trend"]
 
 st.markdown("---")
-st.markdown(f"### ⚡ Processing Layout Workstation for: **Slot #{selected_slot} — {chosen_trend}**")
+st.subheader(f"🎨 Production Engine: Generating Artwork for '{chosen_trend}'")
 
-# --- NEW: DIRECT CANVA WORKSPACE GENERATOR LINK ---
-st.subheader("🚀 Step 1: Launch Pre-Sized Canva Workspace")
-st.write("Clicking this button opens a brand new Canva project configured exactly to Amazon Merch parameters (4500x5400px):")
+# --- ENGINE SETTINGS ---
+color_theme = st.selectbox("Select Text Color Theme:", ["Cream / Vintage White", "Sunset Orange", "Electric Teal", "Minimalist Black"])
+text_color_map = {
+    "Cream / Vintage White": (255, 253, 208, 255),
+    "Sunset Orange": (255, 94, 54, 255),
+    "Electric Teal": (0, 200, 200, 255),
+    "Minimalist Black": (0, 0, 0, 255)
+}
+chosen_rgba = text_color_map[color_theme]
 
-# Programmatically build custom Canva creator deep link
-canva_base_url = "https://www.canva.com/design/new?units=px&width=4500&height=5400"
-st.link_button("🎨 Open 4500 x 5400px Canvas Project", canva_base_url, type="primary", use_container_width=True)
+# --- PROGRAMMATIC IMAGE GENERATOR ---
+# 1. Create a raw blank transparent canvas matching Amazon's parameters exactly
+img = Image.new("RGBA", (4500, 5400), (0, 0, 0, 0))
+draw = ImageDraw.Draw(img)
 
-# --- STEP 2: CANVA IMAGING PROMPTER ---
-st.subheader("🎨 Step 2: Canva Text-to-Image Optimized Prompt")
-st.write("Copy this phrase into Canva's **Magic Media** tab on the left sidebar of your new project:")
+try:
+    # Use standard default system font scaling
+    font = ImageFont.load_default()
+except:
+    font = ImageFont.load_default()
 
-canva_prompt = (
-    f"A high-quality, professional t-shirt vector graphic emblem featuring the phrase: \"{chosen_trend}\". "
-    f"Minimalist streetwear style design with clean lines and bold typography seamlessly woven into the icon layout. "
-    f"Limited flat retro color palette with no complex realistic photo gradients. "
-    f"CRITICAL DESIGN REQUISITE: Isolated object style, positioned centrally over a completely solid, plain white background. "
-    f"The artwork must have thick, clean, sharp borders with a clear sticker-cut silhouette outline to allow for smooth one-click background removal."
+# Split text into multiple lines if it's long to build a stacked look
+words = chosen_trend.split()
+lines = []
+if len(words) > 3:
+    lines.append(" ".join(words[:2]))
+    lines.append(" ".join(words[2:]))
+else:
+    lines.append(chosen_trend)
+
+# Render the text line by line centered onto the 4500x5400 vector grid
+y_offset = 2000
+for line in lines:
+    # Use simple scaling to ensure maximum print size visibility
+    draw.text((2250, y_offset), line, font=font, fill=chosen_rgba, anchor="mm", font_size=350)
+    y_offset += 450
+
+# Convert image to byte array for Streamlit download button
+buf = io.BytesIO()
+img.save(buf, format="PNG")
+byte_im = buf.getvalue()
+
+# --- DIRECT ACTIONS ---
+st.success("✅ 4500 x 5400 px Transparent PNG Generated Successfully inside your App Session.")
+
+st.download_button(
+    label=f"📥 Download Print-Ready PNG for '{chosen_trend}'",
+    data=byte_im,
+    file_name=f"{chosen_trend.lower().replace(' ', '_')}_amazon_design.png",
+    mime="image/png",
+    type="primary"
 )
 
-st.text_area("📋 Copy This Prompt For Canva AI:", value=canva_prompt, height=130)
-
-# --- STEP 3: SEO LISTING METADATA ---
-st.subheader("📝 Step 3: Amazon Merch On Demand Listing Metadata Pack")
+st.markdown("---")
+st.subheader("📝 Step 3: Copy-and-Paste Amazon Merch SEO Metadata Pack")
 
 seo_title = f"{chosen_trend} Shirt Vintage Retro T-Shirt"
-seo_brand = f"{chosen_trend} Aesthetic Apparel Collective"
+seo_brand = f"{chosen_trend} Apparel Collective"
 seo_b1 = f"Stand out with this unique premium-style {chosen_trend} t-shirt. Features a custom high-contrast graphic layout that fits perfectly into casual everyday outfits, streetwear looks, or active wear."
 seo_b2 = f"The ultimate graphic design selection for fans and apparel collectors. This vintage-inspired {chosen_trend} layout makes an incredible gift for birthdays, holidays, or special group events."
 
 col1, col2 = st.columns(2)
 with col1:
-    st.text_input("📋 Optimized Product Title (Max 60 Characters)", value=seo_title[:60], key="title_v2")
+    st.text_input("📋 Product Title", value=seo_title[:60], key="t3")
 with col2:
-    st.text_input("📋 Brand Name Specification", value=seo_brand[:60], key="brand_v2")
+    st.text_input("📋 Brand Name", value=seo_brand[:60], key="b3")
 
-st.text_area("📋 Key Feature Bullet Point 1", value=seo_b1, height=65, key="b1_v2")
-st.text_area("📋 Key Feature Bullet Point 2", value=seo_b2, height=65, key="b2_v2")
+st.text_area("📋 Feature Bullet 1", value=seo_b1, height=65, key="b1_3")
+st.text_area("📋 Feature Bullet 2", value=seo_b2, height=65, key="b2_3")
