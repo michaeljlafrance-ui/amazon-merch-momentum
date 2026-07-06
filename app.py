@@ -4,7 +4,6 @@ import json
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 import io
-import os
 
 st.set_page_config(page_title="Amazon Auto-Merch Studio", layout="wide")
 
@@ -68,26 +67,26 @@ text_color_map = {
 }
 chosen_rgba = text_color_map[color_theme]
 
-# --- THE FONT FIX LAYER ---
-# Locate standard TrueType fonts available on the Streamlit Linux operating container
-linux_font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-fallback_font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+# --- THE STABLE WEB-FONT FETCH LAYER ---
+@st.cache_data
+def load_web_font():
+    # Fetching a bold, impactful headline font directly from Google's verified repository open cache
+    font_url = "https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf"
+    font_response = requests.get(font_url)
+    return font_response.content
 
-font_size = 280
-
-if os.path.exists(linux_font_path):
-    font = ImageFont.truetype(linux_font_path, font_size)
-elif os.path.exists(fallback_font_path):
-    font = ImageFont.truetype(fallback_font_path, font_size)
-else:
-    # True fallback if linux paths alter
+try:
+    font_bytes = load_web_font()
+    font = ImageFont.truetype(io.BytesIO(font_bytes), 350)
+except Exception as e:
+    # Extreme backup default
     font = ImageFont.load_default()
 
 # --- PROGRAMMATIC IMAGE GENERATOR ---
 img = Image.new("RGBA", (4500, 5400), (0, 0, 0, 0))
 draw = ImageDraw.Draw(img)
 
-# Smart text wrapping for crisp stacked look
+# Smart text wrapping for crisp stacked layout formatting
 words = chosen_trend.split()
 lines = []
 if len(words) > 3:
@@ -96,13 +95,13 @@ if len(words) > 3:
 else:
     lines.append(chosen_trend)
 
-# Render lines cleanly down the vertical center
-y_offset = 2300 if len(lines) == 1 else 2000
+# Render text line by line down the perfect vertical canvas coordinates
+y_offset = 2400 if len(lines) == 1 else 2100
 for line in lines:
     draw.text((2250, y_offset), line, font=font, fill=chosen_rgba, anchor="mm")
-    y_offset += 380
+    y_offset += 420
 
-# Package to bytes
+# Convert image to clean byte array for direct client download
 buf = io.BytesIO()
 img.save(buf, format="PNG")
 byte_im = buf.getvalue()
