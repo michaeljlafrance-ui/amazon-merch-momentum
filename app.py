@@ -58,7 +58,8 @@ chosen_trend = df_top_10.loc[selected_slot, "Trend"]
 st.markdown("---")
 st.subheader(f"🎨 Production Engine: Generating Artwork for '{chosen_trend}'")
 
-color_theme = st.selectbox("Select Text Color Theme:", ["Cream / Vintage White", "Sunset Orange", "Electric Teal", "Minimalist Black"])
+# Use unique key for color selection to reset state nicely
+color_theme = st.selectbox("Select Text Color Theme:", ["Cream / Vintage White", "Sunset Orange", "Electric Teal", "Minimalist Black"], key=f"color_{selected_slot}")
 text_color_map = {
     "Cream / Vintage White": (255, 253, 208, 255),
     "Sunset Orange": (255, 94, 54, 255),
@@ -70,7 +71,6 @@ chosen_rgba = text_color_map[color_theme]
 # --- THE STABLE WEB-FONT FETCH LAYER ---
 @st.cache_data
 def load_web_font():
-    # Fetching a bold, impactful headline font directly from Google's verified repository open cache
     font_url = "https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf"
     font_response = requests.get(font_url)
     return font_response.content
@@ -79,14 +79,12 @@ try:
     font_bytes = load_web_font()
     font = ImageFont.truetype(io.BytesIO(font_bytes), 350)
 except Exception as e:
-    # Extreme backup default
     font = ImageFont.load_default()
 
 # --- PROGRAMMATIC IMAGE GENERATOR ---
 img = Image.new("RGBA", (4500, 5400), (0, 0, 0, 0))
 draw = ImageDraw.Draw(img)
 
-# Smart text wrapping for crisp stacked layout formatting
 words = chosen_trend.split()
 lines = []
 if len(words) > 3:
@@ -95,25 +93,24 @@ if len(words) > 3:
 else:
     lines.append(chosen_trend)
 
-# Render text line by line down the perfect vertical canvas coordinates
 y_offset = 2400 if len(lines) == 1 else 2100
 for line in lines:
     draw.text((2250, y_offset), line, font=font, fill=chosen_rgba, anchor="mm")
     y_offset += 420
 
-# Convert image to clean byte array for direct client download
 buf = io.BytesIO()
 img.save(buf, format="PNG")
 byte_im = buf.getvalue()
 
-st.success("✅ 4500 x 5400 px Transparent PNG Generated Successfully with full font scaling scaling arrays.")
+st.success(f"✅ 4500 x 5400 px Transparent PNG Generated Successfully for Slot #{selected_slot}.")
 
 st.download_button(
     label=f"📥 Download Print-Ready PNG for '{chosen_trend}'",
     data=byte_im,
     file_name=f"{chosen_trend.lower().replace(' ', '_')}_amazon_design.png",
     mime="image/png",
-    type="primary"
+    type="primary",
+    key=f"dl_{selected_slot}" # Dynamic key to prevent download caching bugs
 )
 
 st.markdown("---")
@@ -124,11 +121,13 @@ seo_brand = f"{chosen_trend} Apparel Collective"
 seo_b1 = f"Stand out with this unique premium-style {chosen_trend} t-shirt. Features a custom high-contrast graphic layout that fits perfectly into casual everyday outfits, streetwear looks, or active wear."
 seo_b2 = f"The ultimate graphic design selection for fans and apparel collectors. This vintage-inspired {chosen_trend} layout makes an incredible gift for birthdays, holidays, or special group events."
 
+# --- DYNAMIC KEY IMPLEMENTATION FIX ---
+# Appending the selected_slot variable guarantees the inputs reset cleanly per click
 col1, col2 = st.columns(2)
 with col1:
-    st.text_input("📋 Product Title", value=seo_title[:60], key="t4")
+    st.text_input("📋 Product Title", value=seo_title[:60], key=f"title_{selected_slot}")
 with col2:
-    st.text_input("📋 Brand Name", value=seo_brand[:60], key="b4")
+    st.text_input("📋 Brand Name", value=seo_brand[:60], key=f"brand_{selected_slot}")
 
-st.text_area("📋 Feature Bullet 1", value=seo_b1, height=65, key="b1_4")
-st.text_area("📋 Feature Bullet 2", value=seo_b2, height=65, key="b2_4")
+st.text_area("📋 Feature Bullet 1", value=seo_b1, height=65, key=f"b1_{selected_slot}")
+st.text_area("📋 Feature Bullet 2", value=seo_b2, height=65, key=f"b2_{selected_slot}")
