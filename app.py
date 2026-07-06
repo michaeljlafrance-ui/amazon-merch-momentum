@@ -4,6 +4,7 @@ import json
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 import io
+import os
 
 st.set_page_config(page_title="Amazon Auto-Merch Studio", layout="wide")
 
@@ -58,7 +59,6 @@ chosen_trend = df_top_10.loc[selected_slot, "Trend"]
 st.markdown("---")
 st.subheader(f"🎨 Production Engine: Generating Artwork for '{chosen_trend}'")
 
-# --- ENGINE SETTINGS ---
 color_theme = st.selectbox("Select Text Color Theme:", ["Cream / Vintage White", "Sunset Orange", "Electric Teal", "Minimalist Black"])
 text_color_map = {
     "Cream / Vintage White": (255, 253, 208, 255),
@@ -68,18 +68,26 @@ text_color_map = {
 }
 chosen_rgba = text_color_map[color_theme]
 
+# --- THE FONT FIX LAYER ---
+# Locate standard TrueType fonts available on the Streamlit Linux operating container
+linux_font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+fallback_font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+
+font_size = 280
+
+if os.path.exists(linux_font_path):
+    font = ImageFont.truetype(linux_font_path, font_size)
+elif os.path.exists(fallback_font_path):
+    font = ImageFont.truetype(fallback_font_path, font_size)
+else:
+    # True fallback if linux paths alter
+    font = ImageFont.load_default()
+
 # --- PROGRAMMATIC IMAGE GENERATOR ---
-# 1. Create a raw blank transparent canvas matching Amazon's parameters exactly
 img = Image.new("RGBA", (4500, 5400), (0, 0, 0, 0))
 draw = ImageDraw.Draw(img)
 
-try:
-    # Use standard default system font scaling
-    font = ImageFont.load_default()
-except:
-    font = ImageFont.load_default()
-
-# Split text into multiple lines if it's long to build a stacked look
+# Smart text wrapping for crisp stacked look
 words = chosen_trend.split()
 lines = []
 if len(words) > 3:
@@ -88,20 +96,18 @@ if len(words) > 3:
 else:
     lines.append(chosen_trend)
 
-# Render the text line by line centered onto the 4500x5400 vector grid
-y_offset = 2000
+# Render lines cleanly down the vertical center
+y_offset = 2300 if len(lines) == 1 else 2000
 for line in lines:
-    # Use simple scaling to ensure maximum print size visibility
-    draw.text((2250, y_offset), line, font=font, fill=chosen_rgba, anchor="mm", font_size=350)
-    y_offset += 450
+    draw.text((2250, y_offset), line, font=font, fill=chosen_rgba, anchor="mm")
+    y_offset += 380
 
-# Convert image to byte array for Streamlit download button
+# Package to bytes
 buf = io.BytesIO()
 img.save(buf, format="PNG")
 byte_im = buf.getvalue()
 
-# --- DIRECT ACTIONS ---
-st.success("✅ 4500 x 5400 px Transparent PNG Generated Successfully inside your App Session.")
+st.success("✅ 4500 x 5400 px Transparent PNG Generated Successfully with full font scaling scaling arrays.")
 
 st.download_button(
     label=f"📥 Download Print-Ready PNG for '{chosen_trend}'",
@@ -121,9 +127,9 @@ seo_b2 = f"The ultimate graphic design selection for fans and apparel collectors
 
 col1, col2 = st.columns(2)
 with col1:
-    st.text_input("📋 Product Title", value=seo_title[:60], key="t3")
+    st.text_input("📋 Product Title", value=seo_title[:60], key="t4")
 with col2:
-    st.text_input("📋 Brand Name", value=seo_brand[:60], key="b3")
+    st.text_input("📋 Brand Name", value=seo_brand[:60], key="b4")
 
-st.text_area("📋 Feature Bullet 1", value=seo_b1, height=65, key="b1_3")
-st.text_area("📋 Feature Bullet 2", value=seo_b2, height=65, key="b2_3")
+st.text_area("📋 Feature Bullet 1", value=seo_b1, height=65, key="b1_4")
+st.text_area("📋 Feature Bullet 2", value=seo_b2, height=65, key="b2_4")
