@@ -72,7 +72,16 @@ st.markdown("---")
 st.subheader("🎨 Step 2: Optimized Gemini Image Asset Generation Prompt")
 st.write("Copy this script straight into Gemini. It is fully engineered to produce flat, high-contrast, retail-ready clip art vectors:")
 
+clean_keyword = selected_niche.replace("'", "").replace('"', "")
+
 # Dynamic formatting rules based on the category footprint
+if len(clean_keyword) > 25:
+    graphic_style = "A professional, standalone t-shirt graphic vector asset centered around the design concept"
+    composition_rules = "The typography must be arranged in a beautifully stacked, balanced typographic layout."
+else:
+    graphic_style = "A vibrant, minimalist vector icon emblem graphic"
+    composition_rules = "The typography should be clean, centered, and seamlessly integrated into the icon artwork."
+
 gemini_prompt = (
     f"Create a professional, standalone t-shirt graphic vector asset centered around the design concept: \"{selected_niche}\". "
     f"The design should be a high-quality, clean vector graphic with no complex hyper-realistic photographic shading. "
@@ -102,4 +111,5 @@ with col1:
 with col2:
     st.text_input("📋 Brand Name Configuration", value=f"{selected_niche} Design Collective")
 
-st.text_area("📋 Key Feature Bullet Point 1", value=seo_bullet1,
+st.text_area("📋 Key Feature Bullet Point 1", value=seo_bullet1, height=65)
+st.text_area("📋 Key Feature Bullet Point 2", value=seo_bullet2, height=65)
